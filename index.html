@@ -17,13 +17,35 @@
             position: relative;
             width: 100vw;
             height: 100vh;
-            overflow: hidden;
+            overflow: auto;
             cursor: move;
             background-color: #fff;
-            background-image: 
-                linear-gradient(90deg, rgba(50,50,50,.05) 1px, transparent 1px),
-                linear-gradient(rgba(50,50,50,.05) 1px, transparent 1px);
-            background-size: 50px 50px;
+        }
+
+        .grid-container {
+            position: relative;
+            width: 4000px;
+            height: 4000px;
+        }
+
+        .grid-line {
+            position: absolute;
+            background-color: rgba(50,50,50,.1);
+        }
+
+        .grid-line.vertical {
+            width: 1px;
+            height: 100%;
+        }
+
+        .grid-line.horizontal {
+            height: 1px;
+            width: 100%;
+        }
+
+        .grid-line.major {
+            background-color: rgba(50,50,50,.3);
+            z-index: 1;
         }
 
         .track-point {
@@ -112,6 +134,7 @@
             border: 2px solid red;
             transform: translate(-50%, -50%);
             pointer-events: none;
+            z-index: 10;
         }
 
         .center-marker::after {
@@ -122,6 +145,15 @@
             transform: translateX(-50%);
             white-space: nowrap;
             color: red;
+            z-index: 10;
+        }
+
+        .axis-label {
+            position: absolute;
+            font-size: 12px;
+            color: rgba(50,50,50,0.7);
+            font-weight: bold;
+            z-index: 5;
         }
 
         .stat-bar-container {
@@ -181,7 +213,9 @@
 </head>
 <body>
     <div id="map-container">
-        <div class="center-marker"></div>
+        <div class="grid-container">
+            <div class="center-marker"></div>
+        </div>
     </div>
     <div class="coordinates-display" id="coordinates">0, 0</div>
     <div class="user-info">
@@ -228,7 +262,7 @@
                 releaseDate: "2025-01-15",
                 worldRecord: "15:51.20",
                 staffBest: 951.2,
-                image: "pathofthedevil.jpg",
+                image: "pathofthedevil.png",
                 worldDownload: "pathofthedevil.zip",
                 servers: []
             },
@@ -243,7 +277,7 @@
                 releaseDate: "2025-01-15",
                 worldRecord: "2:05.00",
                 staffBest: 127.0,
-                image: "labyrinthofnightmares.jpg",
+                image: "labyrinthofnightmares.png",
                 worldDownload: "labyrinthofnightmares.zip",
                 servers: ["frosthex.com"]
             },
@@ -258,7 +292,7 @@
                 releaseDate: "2025-01-15",
                 worldRecord: "4:36.80",
                 staffBest: 276.80,
-                image: "spaceroad.jpg",
+                image: "spaceroad.png",
                 worldDownload: "spaceroad.zip",
                 servers: []
             },
@@ -273,7 +307,7 @@
                 releaseDate: "2025-01-15",
                 worldRecord: "6:09.00",
                 staffBest: 369.0,
-                image: "titanicmonarch.jpg",
+                image: "titanicmonarch.png",
                 worldDownload: "titanicmonarch.zip",
                 servers: []
             },
@@ -497,7 +531,55 @@
             modal.style.display = 'block';
         }
 
+        function createGrid() {
+            const gridContainer = document.querySelector('.grid-container');
+            const GRID_SIZE = 50;
+            const GRID_EXTENT = 40; // -40 to +40 range
+            const containerSize = (GRID_EXTENT * 2 + 1) * GRID_SIZE;
+            
+            // Set container size
+            gridContainer.style.width = `${containerSize}px`;
+            gridContainer.style.height = `${containerSize}px`;
+            
+            // Create vertical lines
+            for (let x = -GRID_EXTENT; x <= GRID_EXTENT; x++) {
+                const line = document.createElement('div');
+                line.className = `grid-line vertical ${x % 5 === 0 ? 'major' : ''}`;
+                line.style.left = `${(x + GRID_EXTENT) * GRID_SIZE}px`;
+                gridContainer.appendChild(line);
+                
+                // Add labels for major lines
+                if (x % 5 === 0) {
+                    const label = document.createElement('div');
+                    label.className = 'axis-label';
+                    label.textContent = x.toString();
+                    label.style.left = `${(x + GRID_EXTENT) * GRID_SIZE - 10}px`;
+                    label.style.top = `${GRID_EXTENT * GRID_SIZE + 25}px`;
+                    gridContainer.appendChild(label);
+                }
+            }
+            
+            // Create horizontal lines
+            for (let y = -GRID_EXTENT; y <= GRID_EXTENT; y++) {
+                const line = document.createElement('div');
+                line.className = `grid-line horizontal ${y % 5 === 0 ? 'major' : ''}`;
+                line.style.top = `${(GRID_EXTENT - y) * GRID_SIZE}px`;
+                gridContainer.appendChild(line);
+                
+                // Add labels for major lines
+                if (y % 5 === 0 && y !== 0) {
+                    const label = document.createElement('div');
+                    label.className = 'axis-label';
+                    label.textContent = y.toString();
+                    label.style.left = `${GRID_EXTENT * GRID_SIZE + 10}px`;
+                    label.style.top = `${(GRID_EXTENT - y) * GRID_SIZE - 6}px`;
+                    gridContainer.appendChild(label);
+                }
+            }
+        }
+
         function createTrackPoint(track) {
+            const gridContainer = document.querySelector('.grid-container');
             const point = document.createElement('div');
             point.className = 'track-point';
             
@@ -516,63 +598,52 @@
             updateTrackPosition(point, track.position[0], track.position[1]);
             
             point.addEventListener('click', () => showTrackDetails(track));
-            mapContainer.appendChild(point);
+            gridContainer.appendChild(point);
             return point;
         }
 
         function updateTrackPosition(element, x, y) {
-            const centerX = window.innerWidth / 2;
-            const centerY = window.innerHeight / 2;
+            const GRID_SIZE = 50;
+            const GRID_EXTENT = 40;
+            const centerX = GRID_EXTENT * GRID_SIZE;
+            const centerY = GRID_EXTENT * GRID_SIZE;
             element.style.left = `${centerX + (x * GRID_SIZE)}px`;
             element.style.top = `${centerY - (y * GRID_SIZE)}px`;
         }
 
         const mapContainer = document.getElementById('map-container');
         const coordDisplay = document.getElementById('coordinates');
-        let isDragging = false;
-        let currentX = 0;
-        let currentY = 0;
-        let initialX = 0;
-        let initialY = 0;
-        let xOffset = window.innerWidth / 2;
-        let yOffset = window.innerHeight / 2;
-        const GRID_SIZE = 50;
 
-        mapContainer.addEventListener('mousedown', dragStart);
-        document.addEventListener('mousemove', drag);
-        document.addEventListener('mouseup', dragEnd);
-
-        function dragStart(e) {
-            if (e.target === mapContainer || e.target.classList.contains('track-point')) {
-                isDragging = true;
-                initialX = e.clientX - xOffset;
-                initialY = e.clientY - initialY;
-            }
+        // Update coordinates based on scroll position
+        function updateCoordinates() {
+            const GRID_SIZE = 50;
+            const GRID_EXTENT = 40;
+            const centerX = GRID_EXTENT * GRID_SIZE;
+            const centerY = GRID_EXTENT * GRID_SIZE;
+            
+            const scrollX = mapContainer.scrollLeft;
+            const scrollY = mapContainer.scrollTop;
+            const viewportCenterX = scrollX + mapContainer.clientWidth / 2;
+            const viewportCenterY = scrollY + mapContainer.clientHeight / 2;
+            
+            const gridX = Math.round((viewportCenterX - centerX) / GRID_SIZE);
+            const gridY = Math.round(-(viewportCenterY - centerY) / GRID_SIZE);
+            
+            coordDisplay.textContent = `${gridX}, ${gridY}`;
         }
 
-        function drag(e) {
-            if (isDragging) {
-                e.preventDefault();
-                currentX = e.clientX - initialX;
-                currentY = e.clientY - initialY;
-                xOffset = currentX;
-                yOffset = currentY;
+        mapContainer.addEventListener('scroll', updateCoordinates);
 
-                mapContainer.style.backgroundPosition = `${currentX}px ${currentY}px`;
-
-                const trackPoints = document.querySelectorAll('.track-point');
-                trackPoints.forEach(point => {
-                    point.style.transform = `translate(${currentX}px, ${currentY}px) translate(-50%, -50%)`;
-                });
-
-                const gridX = Math.round(-currentX / GRID_SIZE);
-                const gridY = Math.round(currentY / GRID_SIZE);
-                coordDisplay.textContent = `${gridX}, ${gridY}`;
-            }
-        }
-
-        function dragEnd() {
-            isDragging = false;
+        // Center the view on [0,0] initially
+        function centerView() {
+            const GRID_SIZE = 50;
+            const GRID_EXTENT = 40;
+            const centerX = GRID_EXTENT * GRID_SIZE;
+            const centerY = GRID_EXTENT * GRID_SIZE;
+            
+            mapContainer.scrollLeft = centerX - mapContainer.clientWidth / 2;
+            mapContainer.scrollTop = centerY - mapContainer.clientHeight / 2;
+            updateCoordinates();
         }
 
         document.querySelector('.close').addEventListener('click', () => {
@@ -586,8 +657,14 @@
             }
         });
 
-        // Initialize tracks
+        // Initialize everything
+        createGrid();
         tracks.forEach(track => createTrackPoint(track));
+        
+        // Center the view when page loads
+        window.addEventListener('load', () => {
+            setTimeout(centerView, 100);
+        });
     </script>
 </body>
 </html>
