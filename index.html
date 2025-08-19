@@ -171,6 +171,12 @@
             font-family: monospace;
             z-index: 1000;
         }
+
+        .log-indicator {
+            font-size: 10px;
+            color: #999;
+            margin-left: 5px;
+        }
     </style>
 </head>
 <body>
@@ -180,7 +186,7 @@
     <div class="coordinates-display" id="coordinates">0, 0</div>
     <div class="user-info">
         <div>User: QueasyBoatRaces</div>
-        <div>UTC: 2025-08-14 10:42:29</div>
+        <div>UTC: 2025-08-12 16:31:36</div>
     </div>
 
     <div id="trackModal" class="modal">
@@ -193,10 +199,159 @@
 
     <script>
         const CURRENT_USER = 'QueasyBoatRaces';
-        const CURRENT_DATE = new Date('2025-08-14T10:42:29Z');
+        const CURRENT_DATE = new Date('2025-08-12T16:31:36Z');
 
         const tracks = [
-            // ... (tracks data remains the same) ...
+            {
+                position: [1, 0],
+                name: "Rainbow Road",
+                averageTime: 3.5,
+                length: 8.4,
+                width: 21,
+                difficulty: 4,
+                averageSpeed: 210,
+                releaseDate: "2025-01-15",
+                worldRecord: "3:16.00",
+                staffBest: 196.0,
+                image: "rainbowroad.png",
+                worldDownload: "rainbowroad.zip",
+                servers: []
+            },
+            {
+                position: [0, -2],
+                name: "The path of the devil",
+                averageTime: 20,
+                length: 30,
+                width: 9,
+                difficulty: 5,
+                averageSpeed: 150,
+                releaseDate: "2025-01-15",
+                worldRecord: "15:51.20",
+                staffBest: 951.2,
+                image: "pathofthedevil.png",
+                worldDownload: "pathofthedevil.zip",
+                servers: []
+            },
+            {
+                position: [-2,0],
+                name: "The labyrinth of nightmares",
+                averageTime: 2.5,
+                length: 6.5,
+                width: 15,
+                difficulty: 4,
+                averageSpeed: 250,
+                releaseDate: "2025-01-15",
+                worldRecord: "2:05.00",
+                staffBest: 127.0,
+                image: "labyrinthofnightmares.png",
+                worldDownload: "labyrinthofnightmares.zip",
+                servers: ["frosthex.com"]
+            },
+            {
+                position: [-1, 0],
+                name: "Space Road",
+                averageTime: 5,
+                length: 16,
+                width: 25,
+                difficulty: 4,
+                averageSpeed: 280,
+                releaseDate: "2025-01-15",
+                worldRecord: "4:36.80",
+                staffBest: 276.80,
+                image: "spaceroad.png",
+                worldDownload: "spaceroad.zip",
+                servers: []
+            },
+            {
+                position: [0, 1],
+                name: "Titanic Monarch",
+                averageTime: 6,
+                length: 16,
+                width: 15,
+                difficulty: 4,
+                averageSpeed: 230,
+                releaseDate: "2025-01-15",
+                worldRecord: "6:09.00",
+                staffBest: 369.0,
+                image: "titanicmonarch.png",
+                worldDownload: "titanicmonarch.zip",
+                servers: []
+            },
+            {
+                position: [2, 0],
+                name: "Broken Rainbow Road",
+                averageTime: 3,
+                length: 7.6,
+                width: 19,
+                difficulty: 4,
+                averageSpeed: 230,
+                releaseDate: "2025-01-15",
+                worldRecord: "2:43.00",
+                staffBest: 163.0,
+                image: "brokenrainbowroad.png",
+                worldDownload: "brokenrainbowroad.zip",
+                servers: []
+            },
+            {
+                position: [0, -1],
+                name: "Through the fire and flames",
+                averageTime: 7,
+                length: 26,
+                width: 17,
+                difficulty: 5,
+                averageSpeed: 300,
+                releaseDate: "2025-01-15",
+                worldRecord: "7:06.00",
+                staffBest: 426.0,
+                image: "throughthefireandflames.png",
+                worldDownload: "throughthefireandflames.zip",
+                servers: []
+            },
+            {
+                position: [0, 2],
+                name: "Metallic madness",
+                averageTime: 10,
+                length: 23,
+                width: 17,
+                difficulty: 4,
+                averageSpeed: 200,
+                releaseDate: "2025-01-15",
+                worldRecord: "10:12.00",
+                staffBest: 612.0,
+                image: "metallicmadness.png",
+                worldDownload: "metallicmadness.zip",
+                servers: []
+            },
+            {
+                position: [-1, 1],
+                name: "Stardust Speedway",
+                averageTime: 15,
+                length: 50,
+                width: 19,
+                difficulty: 4,
+                averageSpeed: 270,
+                releaseDate: "2025-01-15",
+                worldRecord: "15:02.00",
+                staffBest: 902.0,
+                image: "stardustspeedway.png",
+                worldDownload: "stardustspeedway.zip",
+                servers: []
+            },
+            {
+                position: [0, 0],
+                name: "Mystic Road",
+                averageTime: 60,
+                length: 200,
+                width: 19,
+                difficulty: 5,
+                averageSpeed: 210,
+                releaseDate: "2025-08-21",
+                worldRecord: "1:30:00.00",
+                staffBest: 5400.00,
+                image: "mysticroad.png",
+                worldDownload: "mysticroad.zip",
+                servers: []
+            }
         ];
 
         function getColorForPercentage(percentage) {
@@ -252,38 +407,39 @@
             return `${minutes}:${seconds.padStart(5, '0')}`;
         }
 
-        function createStatBar(label, value, maxValue, unit = '', options = {}) {
+        function calculateScaledPercentage(value, minValue, maxValue, useLog = false) {
+            if (value <= minValue) return 0;
+            
+            if (useLog) {
+                const logValue = Math.log10(value);
+                const logMin = Math.log10(minValue);
+                const logMax = Math.log10(maxValue);
+                return Math.min(((logValue - logMin) / (logMax - logMin)) * 100, 100);
+            } else {
+                return Math.min(((value - minValue) / (maxValue - minValue)) * 100, 100);
+            }
+        }
+
+        function createStatBar(label, value, minValue, maxValue, unit = '', options = {}) {
             const {
                 reverseColor = false,
                 showPercentage = false,
                 customFormat = null,
-                useLogScale = false,
-                minValue = 0
+                useLog = false
             } = options;
             
-            // Calculate percentage using either linear or logarithmic scale
-            let percentage;
-            if (useLogScale) {
-                // Use log10 scale, add 1 to handle values between 0 and 1
-                const logValue = Math.log10(value - minValue + 1);
-                const logMax = Math.log10(maxValue - minValue + 1);
-                percentage = Math.min((logValue / logMax) * 100, 100);
-            } else {
-                const adjustedValue = value - minValue;
-                const adjustedMax = maxValue - minValue;
-                percentage = Math.min((adjustedValue / adjustedMax) * 100, 100);
-            }
-            
+            const percentage = calculateScaledPercentage(value, minValue, maxValue, useLog);
             const colorPercentage = reverseColor ? 100 - percentage : percentage;
             const color = getColorForPercentage(colorPercentage);
             
             const displayValue = customFormat ? customFormat(value) : `${value}${unit}`;
             const percentageDisplay = showPercentage ? ` (${Math.round(percentage)}%)` : '';
+            const logIndicator = useLog ? '<span class="log-indicator">log</span>' : '';
             
             return `
                 <div class="stat-bar-container">
                     <div class="stat-bar-label">
-                        <span>${label}</span>
+                        <span>${label}${logIndicator}</span>
                         <span class="stat-bar-value">${displayValue}${percentageDisplay}</span>
                     </div>
                     <div class="stat-bar-background">
@@ -299,20 +455,13 @@
             const modalTrackName = document.getElementById('modalTrackName');
             const modalContent = document.getElementById('modalContent');
 
-            const maxValues = {
-                time: 60,
-                length: 200,
-                width: 25,
-                difficulty: 5,
-                speed: 300
-            };
-
-            const minValues = {
-                time: 2.5,
-                length: 6.5,
-                width: 9,
-                difficulty: 1,
-                speed: 150
+            // Define min and max values with more realistic ranges
+            const statRanges = {
+                time: { min: 2, max: 30, useLog: true }, // Adjusted max to make Path of the Devil show ~90%
+                length: { min: 5, max: 80, useLog: true }, // Adjusted max to make Stardust Speedway show ~90%
+                width: { min: 8, max: 25 },
+                difficulty: { min: 1, max: 5 },
+                speed: { min: 100, max: 300 }
             };
 
             modalTrackName.textContent = track.name;
@@ -322,25 +471,18 @@
                 <p><strong>Position:</strong> [${track.position.join(', ')}]</p>
                 
                 <h3>${track.name}</h3>
-                ${createStatBar('Average Time', track.averageTime, maxValues.time, ' min', { 
+                ${createStatBar('Average Time', track.averageTime, statRanges.time.min, statRanges.time.max, ' min', { 
                     reverseColor: true,
                     customFormat: (val) => `${val} min (${(val * 60).toFixed(0)}s)`,
-                    useLogScale: true,
-                    minValue: minValues.time
+                    useLog: statRanges.time.useLog
                 })}
-                ${createStatBar('Length', track.length, maxValues.length, ' km', {
-                    useLogScale: true,
-                    minValue: minValues.length
+                ${createStatBar('Length', track.length, statRanges.length.min, statRanges.length.max, ' km', {
+                    useLog: statRanges.length.useLog
                 })}
-                ${createStatBar('Width', track.width, maxValues.width, ' blocks', {
-                    minValue: minValues.width
-                })}
-                ${createStatBar('Difficulty', track.difficulty, maxValues.difficulty, ' ★', {
-                    minValue: minValues.difficulty
-                })}
-                ${createStatBar('Average Speed', track.averageSpeed, maxValues.speed, ' cm/t', {
-                    customFormat: (val) => `${val} cm/t (${(val * 72 / 100).toFixed(1)} km/h)`,
-                    minValue: minValues.speed
+                ${createStatBar('Width', track.width, statRanges.width.min, statRanges.width.max, ' blocks')}
+                ${createStatBar('Difficulty', track.difficulty, statRanges.difficulty.min, statRanges.difficulty.max, ' ★')}
+                ${createStatBar('Average Speed', track.averageSpeed, statRanges.speed.min, statRanges.speed.max, ' cm/t', {
+                    customFormat: (val) => `${val} cm/t (${(val * 72 / 100).toFixed(1)} km/h)`
                 })}
                 
                 <div style="margin-top: 20px;">
@@ -355,7 +497,97 @@
             modal.style.display = 'block';
         }
 
-        // ... (rest of the code remains the same) ...
+        function createTrackPoint(track) {
+            const point = document.createElement('div');
+            point.className = 'track-point';
+            
+            const img = document.createElement('img');
+            img.src = track.image;
+            img.className = 'track-image';
+            img.alt = track.name;
+            
+            const name = document.createElement('div');
+            name.className = 'track-name';
+            name.textContent = track.name;
+            
+            point.appendChild(img);
+            point.appendChild(name);
+            
+            updateTrackPosition(point, track.position[0], track.position[1]);
+            
+            point.addEventListener('click', () => showTrackDetails(track));
+            mapContainer.appendChild(point);
+            return point;
+        }
+
+        function updateTrackPosition(element, x, y) {
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            element.style.left = `${centerX + (x * GRID_SIZE)}px`;
+            element.style.top = `${centerY - (y * GRID_SIZE)}px`;
+        }
+
+        const mapContainer = document.getElementById('map-container');
+        const coordDisplay = document.getElementById('coordinates');
+        let isDragging = false;
+        let currentX = 0;
+        let currentY = 0;
+        let initialX = 0;
+        let initialY = 0;
+        let xOffset = window.innerWidth / 2;
+        let yOffset = window.innerHeight / 2;
+        const GRID_SIZE = 50;
+
+        mapContainer.addEventListener('mousedown', dragStart);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', dragEnd);
+
+        function dragStart(e) {
+            if (e.target === mapContainer || e.target.classList.contains('track-point')) {
+                isDragging = true;
+                initialX = e.clientX - xOffset;
+                initialY = e.clientY - initialY;
+            }
+        }
+
+        function drag(e) {
+            if (isDragging) {
+                e.preventDefault();
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+                xOffset = currentX;
+                yOffset = currentY;
+
+                mapContainer.style.backgroundPosition = `${currentX}px ${currentY}px`;
+
+                const trackPoints = document.querySelectorAll('.track-point');
+                trackPoints.forEach(point => {
+                    point.style.transform = `translate(${currentX}px, ${currentY}px) translate(-50%, -50%)`;
+                });
+
+                const gridX = Math.round(-currentX / GRID_SIZE);
+                const gridY = Math.round(currentY / GRID_SIZE);
+                coordDisplay.textContent = `${gridX}, ${gridY}`;
+            }
+        }
+
+        function dragEnd() {
+            isDragging = false;
+        }
+
+        document.querySelector('.close').addEventListener('click', () => {
+            document.getElementById('trackModal').style.display = 'none';
+        });
+
+        window.addEventListener('click', (event) => {
+            const modal = document.getElementById('trackModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+
+        // Initialize tracks
+        tracks.forEach(track => createTrackPoint(track));
     </script>
 </body>
 </html>
