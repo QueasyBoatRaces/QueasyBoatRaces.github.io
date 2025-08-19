@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Boat Race Tracks - QueasyBoatRaces</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+
+        #map-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            cursor: move;
+            background-color: #fff;
+            background-image: 
+                linear-gradient(90deg, rgba(50,50,50,.05) 1px, transparent 1px),
+                linear-gradient(rgba(50,50,50,.05) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        .track-point {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .track-point:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+            z-index: 1000;
+        }
+
+        .track-image {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            border: 3px solid #4CAF50;
+            object-fit: cover;
+        }
+
+        .track-name {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 2000;
+        }
+
+        .modal-content {
+            position: relative;
+            background-color: white;
+            margin: auto;
+            padding: 20px;
+            width: 70%;
+            max-width: 700px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .close {
+            position: absolute;
+            right: 10px;
+            top: 5px;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .coordinates-display {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            z-index: 1000;
+        }
+
+        .center-marker {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: rgba(255, 0, 0, 0.5);
+            border: 2px solid red;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        .center-marker::after {
+            content: '[0,0]';
+            position: absolute;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            color: red;
+        }
+
+        .stat-bar-container {
+            margin: 15px 0;
+            width: 100%;
+        }
+
+        .stat-bar-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2px;
+            font-weight: bold;
+        }
+
+        .stat-bar-value {
+            font-weight: normal;
+            color: #666;
+        }
+
+        .stat-bar-background {
+            width: 100%;
+            height: 20px;
+            background-color: #eee;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .stat-bar-fill {
+            height: 100%;
+            transition: width 0.5s ease-out, background-color 0.5s ease-out;
+            border-radius: 10px;
+        }
+
+        .separator {
+            border-top: 2px solid #ddd;
+            margin: 10px 0;
+        }
+
+        .user-info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div id="map-container">
+        <div class="center-marker"></div>
+    </div>
+    <div class="coordinates-display" id="coordinates">0, 0</div>
+    <div class="user-info">
+        <div>User: QueasyBoatRaces</div>
+        <div>UTC: 2025-08-14 10:42:29</div>
+    </div>
+
+    <div id="trackModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modalTrackName"></h2>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <script>
+        const CURRENT_USER = 'QueasyBoatRaces';
+        const CURRENT_DATE = new Date('2025-08-14T10:42:29Z');
+
+        const tracks = [
+            // ... (tracks data remains the same) ...
+        ];
+
+        function getColorForPercentage(percentage) {
+            percentage = Math.max(0, Math.min(100, percentage));
+            
+            const colorStops = [
+                { percent: 0, color: { r: 33, g: 150, b: 243 } },    // Blue (#2196F3)
+                { percent: 33, color: { r: 76, g: 175, b: 80 } },    // Green (#4CAF50)
+                { percent: 66, color: { r: 255, g: 193, b: 7 } },    // Yellow (#FFC107)
+                { percent: 100, color: { r: 244, g: 67, b: 54 } }    // Red (#F44336)
+            ];
+            
+            let startColor, endColor;
+            let startPercent, endPercent;
+            
+            for (let i = 0; i < colorStops.length - 1; i++) {
+                if (percentage >= colorStops[i].percent && percentage <= colorStops[i + 1].percent) {
+                    startColor = colorStops[i].color;
+                    endColor = colorStops[i + 1].color;
+                    startPercent = colorStops[i].percent;
+                    endPercent = colorStops[i + 1].percent;
+                    break;
+                }
+            }
+            
+            const range = endPercent - startPercent;
+            const percentInRange = (percentage - startPercent) / range;
+            
+            const r = Math.round(startColor.r + (endColor.r - startColor.r) * percentInRange);
+            const g = Math.round(startColor.g + (endColor.g - startColor.g) * percentInRange);
+            const b = Math.round(startColor.b + (endColor.b - startColor.b) * percentInRange);
+            
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+
+        function formatRelativeTime(dateString) {
+            const date = new Date(dateString);
+            const diffTime = Math.abs(CURRENT_DATE - date);
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 0) return 'Today';
+            if (diffDays === 1) return 'Yesterday';
+            if (diffDays < 7) return `${diffDays} days ago`;
+            if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+            if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
+            return `${Math.floor(diffDays / 365)} years ago`;
+        }
+
+        function formatTime(time) {
+            if (typeof time === 'string') return time;
+            const minutes = Math.floor(time / 60);
+            const seconds = (time % 60).toFixed(2);
+            return `${minutes}:${seconds.padStart(5, '0')}`;
+        }
+
+        function createStatBar(label, value, maxValue, unit = '', options = {}) {
+            const {
+                reverseColor = false,
+                showPercentage = false,
+                customFormat = null,
+                useLogScale = false,
+                minValue = 0
+            } = options;
+            
+            // Calculate percentage using either linear or logarithmic scale
+            let percentage;
+            if (useLogScale) {
+                // Use log10 scale, add 1 to handle values between 0 and 1
+                const logValue = Math.log10(value - minValue + 1);
+                const logMax = Math.log10(maxValue - minValue + 1);
+                percentage = Math.min((logValue / logMax) * 100, 100);
+            } else {
+                const adjustedValue = value - minValue;
+                const adjustedMax = maxValue - minValue;
+                percentage = Math.min((adjustedValue / adjustedMax) * 100, 100);
+            }
+            
+            const colorPercentage = reverseColor ? 100 - percentage : percentage;
+            const color = getColorForPercentage(colorPercentage);
+            
+            const displayValue = customFormat ? customFormat(value) : `${value}${unit}`;
+            const percentageDisplay = showPercentage ? ` (${Math.round(percentage)}%)` : '';
+            
+            return `
+                <div class="stat-bar-container">
+                    <div class="stat-bar-label">
+                        <span>${label}</span>
+                        <span class="stat-bar-value">${displayValue}${percentageDisplay}</span>
+                    </div>
+                    <div class="stat-bar-background">
+                        <div class="stat-bar-fill" style="width: ${percentage}%; background-color: ${color};"></div>
+                    </div>
+                </div>
+                <div class="separator"></div>
+            `;
+        }
+
+        function showTrackDetails(track) {
+            const modal = document.getElementById('trackModal');
+            const modalTrackName = document.getElementById('modalTrackName');
+            const modalContent = document.getElementById('modalContent');
+
+            const maxValues = {
+                time: 60,
+                length: 200,
+                width: 25,
+                difficulty: 5,
+                speed: 300
+            };
+
+            const minValues = {
+                time: 2.5,
+                length: 6.5,
+                width: 9,
+                difficulty: 1,
+                speed: 150
+            };
+
+            modalTrackName.textContent = track.name;
+            
+            modalContent.innerHTML = `
+                <img src="${track.image}" alt="${track.name}" style="max-width: 300px; margin-bottom: 20px;">
+                <p><strong>Position:</strong> [${track.position.join(', ')}]</p>
+                
+                <h3>${track.name}</h3>
+                ${createStatBar('Average Time', track.averageTime, maxValues.time, ' min', { 
+                    reverseColor: true,
+                    customFormat: (val) => `${val} min (${(val * 60).toFixed(0)}s)`,
+                    useLogScale: true,
+                    minValue: minValues.time
+                })}
+                ${createStatBar('Length', track.length, maxValues.length, ' km', {
+                    useLogScale: true,
+                    minValue: minValues.length
+                })}
+                ${createStatBar('Width', track.width, maxValues.width, ' blocks', {
+                    minValue: minValues.width
+                })}
+                ${createStatBar('Difficulty', track.difficulty, maxValues.difficulty, ' ★', {
+                    minValue: minValues.difficulty
+                })}
+                ${createStatBar('Average Speed', track.averageSpeed, maxValues.speed, ' cm/t', {
+                    customFormat: (val) => `${val} cm/t (${(val * 72 / 100).toFixed(1)} km/h)`,
+                    minValue: minValues.speed
+                })}
+                
+                <div style="margin-top: 20px;">
+                    <p><strong>Release Date:</strong> ${track.releaseDate} (${formatRelativeTime(track.releaseDate)})</p>
+                    <p><strong>World Record:</strong> ${formatTime(track.worldRecord)}</p>
+                    <p><strong>Staff Best:</strong> ${formatTime(track.staffBest)}</p>
+                    <p><strong>World Download:</strong> <a href="${track.worldDownload}" target="_blank">${track.worldDownload}</a></p>
+                    ${track.servers.length ? `<p><strong>Available on Servers:</strong> ${track.servers.join(', ')}</p>` : ''}
+                </div>
+            `;
+
+            modal.style.display = 'block';
+        }
+
+        // ... (rest of the code remains the same) ...
+    </script>
+</body>
+</html>
